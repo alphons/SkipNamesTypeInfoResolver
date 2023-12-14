@@ -1,60 +1,48 @@
 # SkipNamesTypeInfoResolver
 
-Emulates jsonigonore on anonymous types (sort of)
+Emulates jsonIgnore on anonymous types (sort of), filters out also empty objects! -> object1:{}
 
 ```c#
-var forbidden = new[] { "title", "usage", "type", "icon", "options", "default" };
-var json = JsonSerializer.Serialize(vm, new JsonSerializerOptions()
+internal class Program
 {
-	DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-	WriteIndented = true,
-	TypeInfoResolver = new DefaultJsonTypeInfoResolver().WithAddedModifier(typeInfo =>
+	static readonly string[] Ignore = [  "Name1", "Name2", "Name3" ];
+	static bool ShouldSerialize(object? value)
 	{
-		foreach (JsonPropertyInfo propertyInfo in typeInfo.Properties)
+		if (value == null)
+			return false;
+
+		if (value is string s)
+			return s.Length > 0;
+
+		if (value is IList<object> list)
+			return list.Count > 0;
+
+		foreach (var property in value.GetType().GetProperties()) 
 		{
-			if (Array.IndexOf(forbidden, propertyInfo.Name) >= 0)
-			{
-				propertyInfo.ShouldSerialize = (obj, val) => false;
-			}
-			else
-			{
-				propertyInfo.ShouldSerialize = (obj, val) =>
-				{
-					if(val is IList<object>)
-					{
-						if ((val as IList<object>).Count == 0)
-							return false;
-						else
-							return true;
-					}
-					if(val is string)
-					{
-						if ((val as string).Length == 0)
-							return false;
-						else
-							return true;
-					}
+			if (Array.IndexOf(Ignore, property.Name) >= 0)
+				continue;
 
-					// get all the Anonymous types
-								
-					var t = val.GetType();
-					var tn = t.Name;
-
-					if (!tn.Contains("Anonymous"))
-						throw new Exception("Oops");
-
-					var ps = t.GetProperties();
-
-					foreach(var p in ps)
-					{
-						if (Array.IndexOf(forbidden, p.Name) < 0)
-							return true;
-					}
-					return false;
-				};
-			}
+			if (ShouldSerialize(property.GetValue(value)))
+				return true;
 		}
-	})
-});
+		return false;
+	}
 
+	async static Task Main(string[] args)
+	{
+		dynamic vm = DataEngine.GetObject();
+
+		var json = JsonSerializer.Serialize(vm, new JsonSerializerOptions()
+		{
+			WriteIndented = true,
+			TypeInfoResolver = new DefaultJsonTypeInfoResolver().WithAddedModifier(typeInfo =>
+			{
+				foreach (JsonPropertyInfo propertyInfo in typeInfo.Properties)
+					propertyInfo.ShouldSerialize = (obj, value) => ShouldSerialize(value);
+			})
+		});
+
+		await File.WriteAllTextAsync("test1.json", json);
+	}
+}
 ```
