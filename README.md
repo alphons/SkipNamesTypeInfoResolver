@@ -5,7 +5,7 @@ Emulates jsonIgnore on anonymous types (sort of), filters out also empty objects
 ```c#
 internal class Program
 {
-	static readonly string[] Ignore = [  "Name1", "Name2", "Name3" ];
+	static readonly string[] Ignore = [  "Name1", "Name2", "Name3"  ];
 	static bool ShouldSerialize(object? value)
 	{
 		if (value == null)
@@ -30,7 +30,7 @@ internal class Program
 
 	async static Task Main(string[] args)
 	{
-		dynamic vm = DataEngine.GetObject();
+		var vm = DataEngine.GetObject();
 
 		var json = JsonSerializer.Serialize(vm, new JsonSerializerOptions()
 		{
@@ -38,11 +38,17 @@ internal class Program
 			TypeInfoResolver = new DefaultJsonTypeInfoResolver().WithAddedModifier(typeInfo =>
 			{
 				foreach (JsonPropertyInfo propertyInfo in typeInfo.Properties)
-					propertyInfo.ShouldSerialize = (obj, value) => ShouldSerialize(value);
+					propertyInfo.ShouldSerialize = (obj, value) =>
+					{
+						if (Array.IndexOf(Ignore, propertyInfo.Name) >= 0)
+							return false;
+						else
+							return ShouldSerialize(value);
+					};
 			})
 		});
 
-		await File.WriteAllTextAsync("test1.json", json);
+		await File.WriteAllTextAsync(@"test1.json", json);
 	}
 }
 ```
