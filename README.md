@@ -14,7 +14,7 @@ internal class Program
 		if (value is string s)
 			return s.Length > 0;
 
-		if (value is IList<object> list)
+		if (value is IList list)
 			return list.Count > 0;
 
 		foreach (var property in value.GetType().GetProperties()) 
