@@ -109,10 +109,11 @@ internal class Program
 	{
 		var vm = DataEngine.GetVm();
 
-		var options = new JsonSerializerOptions() { WriteIndented = true };
+		var options1 = new JsonSerializerOptions() { WriteIndented = true };
+		var options2 = new JsonSerializerOptions() { WriteIndented = true };
 
-		var json0 = JsonSerializer.Serialize(vm, options);
-		var json1 = JsonSerializerIgn.Serialize(vm, options, ["Name1", "Name2", "Name3"]);
+		var json0 = JsonSerializer.Serialize(vm, options1);
+		var json1 = JsonSerializerIgn.Serialize(vm, options2, ["Name1", "Name2", "Name3"]);
 
 		await File.WriteAllTextAsync("json0.json", json0);
 		await File.WriteAllTextAsync("json1.json", json1);
