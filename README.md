@@ -1,8 +1,8 @@
-# IgnoringJsonSerializer
+# Ignoring JsonSerializer
 
-Emulates jsonIgnore on anonymous types (sort of), filters out also empty objects! -> object1:{}
+Emulates jsonIgnore, can be anonymous objects (sort of), aslo filters empty objects! -> object1:{}
 
-## IgnoringJsonSerializer
+## class JsonSerializerIgn
 ```c#
 
 using System.Collections;
@@ -10,7 +10,7 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace System.Text.Json;
 
-public class IgnoringJsonSerializer
+public static class JsonSerializerIgn
 {
 	private static string[] Ignoring = [];
 	private static bool ShouldSerialize(object? value)
@@ -35,8 +35,8 @@ public class IgnoringJsonSerializer
 		return false;
 	}
 
-	public static string Serialize(object o,
-		JsonSerializerOptions? options = null,
+	public static string Serialize<TValue>(TValue obj,
+		JsonSerializerOptions? options = null, 
 		string[]? Ignore = null)
 	{
 		Ignoring = Ignore ?? ([]);
@@ -54,9 +54,10 @@ public class IgnoringJsonSerializer
 							return ShouldSerialize(value);
 					};
 			});
-		return JsonSerializer.Serialize(o, options);
+		return JsonSerializer.Serialize(obj, options);
 	}
 }
+
 
 ```
 
@@ -74,9 +75,10 @@ internal class Program
 	{
 		var vm = DataEngine.GetVm();
 
-		var json0 = JsonSerializer.Serialize(vm, new JsonSerializerOptions() {  WriteIndented = true });
-		var json1 = IgnoringJsonSerializer.Serialize(vm, new JsonSerializerOptions() { WriteIndented = true }, 
-			["Icon", "Title", "Usage", "Type", "Options", "Default"]);
+		var options = new JsonSerializerOptions() { WriteIndented = true };
+
+		var json0 = JsonSerializer.Serialize(vm, options);
+		var json1 = JsonSerializerIgn.Serialize(vm, options, ["Name1", "Name2", "Name3"]);
 
 		await File.WriteAllTextAsync("json0.json", json0);
 		await File.WriteAllTextAsync("json1.json", json1);
