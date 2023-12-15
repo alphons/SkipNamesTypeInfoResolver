@@ -3,10 +3,16 @@
 Emulates jsonIgnore on anonymous types (sort of), filters out also empty objects! -> object1:{}
 
 ```c#
-internal class Program
+
+using System.Collections;
+using System.Text.Json.Serialization.Metadata;
+
+namespace System.Text.Json;
+
+public class IgnoringJsonSerializer
 {
-	static readonly string[] Ignore = [  "Name1", "Name2", "Name3"  ];
-	static bool ShouldSerialize(object? value)
+	private static string[] Ignoring = [];
+	private static bool ShouldSerialize(object? value)
 	{
 		if (value == null)
 			return false;
@@ -17,9 +23,9 @@ internal class Program
 		if (value is IList list)
 			return list.Count > 0;
 
-		foreach (var property in value.GetType().GetProperties()) 
+		foreach (var property in value.GetType().GetProperties())
 		{
-			if (Array.IndexOf(Ignore, property.Name) >= 0)
+			if (Array.IndexOf(Ignoring, property.Name) >= 0)
 				continue;
 
 			if (ShouldSerialize(property.GetValue(value)))
@@ -28,27 +34,27 @@ internal class Program
 		return false;
 	}
 
-	async static Task Main(string[] args)
+	public static string Serialize(object o,
+		JsonSerializerOptions? options = null,
+		string[]? Ignore = null)
 	{
-		var vm = DataEngine.GetObject();
+		Ignoring = Ignore ?? ([]);
+		options ??= new JsonSerializerOptions();
 
-		var json = JsonSerializer.Serialize(vm, new JsonSerializerOptions()
-		{
-			WriteIndented = true,
-			TypeInfoResolver = new DefaultJsonTypeInfoResolver().WithAddedModifier(typeInfo =>
+		options.TypeInfoResolver = new DefaultJsonTypeInfoResolver()
+			.WithAddedModifier(typeInfo =>
 			{
 				foreach (JsonPropertyInfo propertyInfo in typeInfo.Properties)
 					propertyInfo.ShouldSerialize = (obj, value) =>
 					{
-						if (Array.IndexOf(Ignore, propertyInfo.Name) >= 0)
+						if (Array.IndexOf(Ignoring, propertyInfo.Name) >= 0)
 							return false;
 						else
 							return ShouldSerialize(value);
 					};
-			})
-		});
-
-		await File.WriteAllTextAsync(@"test1.json", json);
+			});
+		return JsonSerializer.Serialize(o, options);
 	}
 }
+
 ```
